@@ -17,11 +17,12 @@ package k8sutil
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	api "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
 	"github.com/coreos/etcd-operator/pkg/util/etcdutil"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -52,6 +53,20 @@ func etcdContainer(cmd []string, repo, version string) v1.Container {
 			},
 		},
 		VolumeMounts: etcdVolumeMounts(),
+	}
+
+	c.Env = append(c.Env, v1.EnvVar{
+		Name: "MY_POD_IP",
+		ValueFrom: &v1.EnvVarSource{
+			FieldRef: &v1.ObjectFieldSelector{FieldPath: "status.podIP"},
+		},
+	})
+	// support arm64
+	if strings.Contains(version, "arm64") {
+		c.Env = append(c.Env, v1.EnvVar{
+			Name:  "ETCD_UNSUPPORTED_ARCH",
+			Value: "arm64",
+		})
 	}
 
 	return c

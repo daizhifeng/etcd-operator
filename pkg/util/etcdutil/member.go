@@ -18,8 +18,11 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Member struct {
@@ -61,11 +64,34 @@ func (m *Member) peerScheme() string {
 	return "http"
 }
 
-func (m *Member) ListenClientURL() string {
-	return fmt.Sprintf("%s://0.0.0.0:2379", m.clientScheme())
+func (m *Member) ListenClientURL() []string {
+	podIp := os.Getenv("MY_POD_IP")
+	logrus.Infof("dzf pod ip: %s", podIp)
+	if len(podIp) != 0 {
+		return []string{
+			fmt.Sprintf("%s://127.0.0.1:2379", m.clientScheme()),
+			fmt.Sprintf("%s://%s:2379", m.clientScheme(), podIp),
+		}
+	}
+	return []string{
+		fmt.Sprintf("%s://127.0.0.1:2379", m.clientScheme()),
+		fmt.Sprintf("%s://%s:2379", m.clientScheme(), podIp),
+	}
+	// return []string{fmt.Sprintf("%s://0.0.0.0:2379", m.clientScheme())}
 }
-func (m *Member) ListenPeerURL() string {
-	return fmt.Sprintf("%s://0.0.0.0:2380", m.peerScheme())
+
+func (m *Member) ListenPeerURL() []string {
+	podIp := os.Getenv("MY_POD_IP")
+
+	logrus.Infof("dzf pod ip: %s", podIp)
+
+	if len(podIp) != 0 {
+		return []string{
+			fmt.Sprintf("%s://127.0.0.1:2380", m.clientScheme()),
+			fmt.Sprintf("%s://%s:2380", m.clientScheme(), podIp),
+		}
+	}
+	return []string{fmt.Sprintf("%s://0.0.0.0:2380", m.peerScheme())}
 }
 
 func (m *Member) PeerURL() string {
